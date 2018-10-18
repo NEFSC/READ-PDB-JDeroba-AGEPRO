@@ -1,12 +1,12 @@
 rm(list=ls())
 direct<-"C:\\NFT\\AGEPROV40\\Haddock"
 setwd(direct)
-proj.fname<-"GBH_2017UPDATE_4YR" #AgePro name to work from
+proj.fname<-"75GBH_2017UPDATE_4YR" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
-FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
+FracFtarg<-c(0.75) #fraction of Fmsy that serves as max target F in control rule
 Bmsy<-104300
 Fmsy<-0.57
 
@@ -26,9 +26,14 @@ ssb.median <- apply(ssb,2,median)
 SSBlevels<-ssb.median/Bmsy #relative to Bmsy
 
 #extract the element of input file where F or catch values specified
+harvscen.num<-input[which(input == "[HARVEST]")+1]
+harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
+harvscen.num<-harvscen.num[harvscen.num != ""]
 harvscen<-input[which(input == "[HARVEST]")+2]
 harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
 harvscen<-harvscen[harvscen != ""]
+#Create OFL holder
+OFL<-c()
 #########################################
 for(s in 1:(length(SSBlevels)-1)){
   if(s>1) {
@@ -49,8 +54,28 @@ for(s in 1:(length(SSBlevels)-1)){
   write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
   ###Run AgePro with proj.fname_s.INP
   agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
+  
+  ##Do iterative OFL calculation
+  ##get catches resulting from CR application
+  if(s>1){
+  catch.cr <- read.table(paste(direct,paste(paste0(proj.fname,s-1),'xx6',sep='.'),sep="\\"))
+  colnames(catch.cr) <- seq(fyr,fyr+ncol(catch.cr)-1)
+  catch.median.cr <- apply(catch.cr,2,median)
+  }
+  if(s==1){
+    harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
+    harvscen.ofl[s+1]<-Fmsy
+    OFL[s]<-"--"
+  } else {
+    harvscen.ofl[s]<-catch.median.cr[s]
+    harvscen.ofl[s+1]<-Fmsy
+  }
+  OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
+  print(OFL)
+  harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+annual["OFL"]<-OFL
 
 ##Run the final agepro at the catch levels associated with the F values to get P(overfishing)
 catch <- read.table(paste(direct,paste(paste0(proj.fname,s),'xx6',sep='.'),sep="\\"))

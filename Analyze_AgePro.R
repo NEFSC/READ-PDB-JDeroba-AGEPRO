@@ -45,3 +45,19 @@ return(resultswant)
 
 } #end function
 
+#calc OFL function
+OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NULL,harvscen.num=NULL,harvscen.ofl=NULL){
+  ifile <- paste(proj.fname,"OFL",s,".INP", sep="") #name of new agepro
+  write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
+  write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
+  harvscen.ofl<-paste(harvscen.ofl,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
+  write(harvscen.ofl,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
+  write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+  ###Run AgePro with proj.fname_s.INP
+  agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
+  catch <- read.table(paste(direct,paste(paste0(proj.fname,"OFL",s),'xx6',sep='.'),sep="\\"))
+  colnames(catch) <- seq(fyr,fyr+ncol(catch)-1)
+  catch.median <- apply(catch,2,median)
+  return(catch.median[s+1])
+} #end OFL function
+
