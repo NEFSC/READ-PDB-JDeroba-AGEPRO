@@ -1,0 +1,20 @@
+---
+title:
+output:
+  word_document: default
+params:
+  hcr: NULL
+  title: NULL
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r pars, tab.cap=NULL, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+library(knitr)
+kable(t(params$hcr),caption=params$title)
+```
