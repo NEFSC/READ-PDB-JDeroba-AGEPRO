@@ -1,14 +1,14 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\Haddock"
+direct<-"C:\\NFT\\AGEPROV40\\GBWF"
 setwd(direct)
-proj.fname<-"75GBH_2017UPDATE_4YR" #AgePro name to work from
+proj.fname<-"2017_FLW_GB_2017-2020_PROJ_75FMSY" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(0.75) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-104300
-Fmsy<-0.57
+Bmsy<-7600
+Fmsy<-0.522
 
 ################################################################
 #Read in an agepro input for manipulation later
@@ -71,7 +71,6 @@ for(s in 1:(length(SSBlevels)-1)){
     harvscen.ofl[s+1]<-Fmsy
   }
   OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
-  print(OFL)
   harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
@@ -96,7 +95,7 @@ annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,2)
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
 #Run each HCR with constant catch, i.e., catch in year one applies to all years
-ifile <- paste(proj.fname,"4_concatch",".INP", sep="") #name of new agepro
+ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
 harvscen.num<-rep(1,length(catch))
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
@@ -104,7 +103,25 @@ harvscen<-c(catch.median[1],rep(round(catch.median[2],0),(length(catch)-1)))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
 write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
-threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,"4_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+
+##Do iterative OFL calculation
+#reset the harvscen.num values (should be 1 and then 0's and replaced in loop below)
+harvscen.num<-input[which(input == "[HARVEST]")+1]
+harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
+harvscen.num<-harvscen.num[harvscen.num != ""]
+for(s in 1:(length(SSBlevels)-1)){
+ if(s==1){
+  harvscen.ofl[s+1]<-Fmsy
+  OFL[s]<-"--"
+ } else {
+  harvscen.ofl[s]<-catch.median[2]
+  harvscen.ofl[s+1]<-Fmsy
+ }
+ OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
+ harvscen.num[s+1]<-1
+}
+threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,2)
 
-rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"4_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
+rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
