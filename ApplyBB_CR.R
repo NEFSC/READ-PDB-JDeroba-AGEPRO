@@ -106,12 +106,16 @@ agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
 
 ##Do iterative OFL calculation
-#reset the harvscen.num values (should be 1 and then 0's and replaced in loop below)
+#reset the harvscen and harvscen.num values (should be 1 and then 0's and replaced in loop below)
 harvscen.num<-input[which(input == "[HARVEST]")+1]
 harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
 harvscen.num<-harvscen.num[harvscen.num != ""]
+harvscen<-input[which(input == "[HARVEST]")+2]
+harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
+harvscen<-harvscen[harvscen != ""]
 for(s in 1:(length(SSBlevels)-1)){
  if(s==1){
+  harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
   harvscen.ofl[s+1]<-Fmsy
   OFL[s]<-"--"
  } else {
