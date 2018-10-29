@@ -1,14 +1,14 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\GBWF"
+direct<-"C:\\NFT\\AGEPROV40\\Haddock"
 setwd(direct)
-proj.fname<-"2017_FLW_GB_2017-2020_PROJ_75FMSY" #AgePro name to work from
+proj.fname<-"GBH_2017UPDATE_4YR" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
-FracFtarg<-c(0.75) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-7600
-Fmsy<-0.522
+FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
+Bmsy<-104300
+Fmsy<-0.57
 
 ################################################################
 #Read in an agepro input for manipulation later
