@@ -1,14 +1,15 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\Haddock"
+direct<-"C:\\NFT\\AGEPROV40\\GBYT"
 setwd(direct)
-proj.fname<-"GBH_2017UPDATE_4YR" #AgePro name to work from
+proj.fname<-"Fref025" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-104300
-Fmsy<-0.57
+Bmsy<-26800
+Fmsy<-0.25
+decimals<-3
 
 ################################################################
 #Read in an agepro input for manipulation later
@@ -48,7 +49,7 @@ for(s in 1:(length(SSBlevels)-1)){
   Fmult<-BB_CR(SSBstatus=SSBlevels[s],SSBthresh=FracBmsyThreshHi,SSBthreshlo = FracBmsyThreshLo,FracFtarg=FracFtarg,Fmsy=Fmsy,CtrlRule=1) #call to HCR
   ifile <- paste(proj.fname,s,".INP", sep="") #name of new agepro
   write(input[1:(which(input == "[HARVEST]")+1)], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
-  harvscen[s+1]<-round(Fmult,2)
+  harvscen[s+1]<-round(Fmult,decimals)
   harvscen<-paste(harvscen,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
   write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
   write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
@@ -73,7 +74,7 @@ for(s in 1:(length(SSBlevels)-1)){
   OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
   harvscen.num[s+1]<-1
 }
-annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
 annual["OFL"]<-OFL
 
 ##Run the final agepro at the catch levels associated with the F values to get P(overfishing)
@@ -88,9 +89,9 @@ harvscen<-round(catch.median,0)
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
 write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
-annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
 annual["P(overfishing)"]<-annual.catch["P(overfishing)"]
-annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,2)
+annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
 
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
@@ -103,7 +104,7 @@ harvscen<-c(catch.median[1],rep(round(catch.median[2],0),(length(catch)-1)))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
 write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
-threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy)
+threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
 
 ##Do iterative OFL calculation
 #reset the harvscen and harvscen.num values (should be 1 and then 0's and replaced in loop below)
@@ -126,6 +127,6 @@ for(s in 1:(length(SSBlevels)-1)){
  harvscen.num[s+1]<-1
 }
 threeblock["OFL"]<-OFL
-threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,2)
+threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))

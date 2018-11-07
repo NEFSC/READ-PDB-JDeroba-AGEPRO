@@ -11,7 +11,7 @@ BB_CR<-function(SSBstatus=NULL,SSBthresh=NULL,SSBthreshlo=NULL,FracFtarg=NULL,Fm
 
 
 
-AnaAgePro<-function(proj.fname.b=NULL,direct=NULL,fmsy=NULL,ssbmsy=NULL){
+AnaAgePro<-function(proj.fname.b=NULL,direct=NULL,fmsy=NULL,ssbmsy=NULL,decimals=NULL){
 
   proj.fname.b<-proj.fname.b  
   direct.b<-direct
@@ -39,8 +39,8 @@ AnaAgePro<-function(proj.fname.b=NULL,direct=NULL,fmsy=NULL,ssbmsy=NULL){
   num_overfishing.b<-ifelse(frac_offmsy.b>1,1,0)
   prob_overfishing.b<-colSums(num_overfishing.b)/nrow(num_overfishing.b)
 
-resultswant<-data.frame(round(catch.median.b,digits=0),round(fmult.median.b,2),round(ssb.median.b,0),round(prob_overfishing.b,2),round(prob_overfished.b,2))
-names(resultswant)<-c("Catch","F(ages 7-8)","SSB","P(overfishing)","P(overfished)")
+resultswant<-data.frame(round(catch.median.b,digits=0),round(fmult.median.b,decimals),round(ssb.median.b,0),round(prob_overfishing.b,decimals),round(prob_overfished.b,decimals))
+names(resultswant)<-c("Catch","F","SSB","P(overfishing)","P(overfished)")
 return(resultswant)
 
 } #end function
@@ -58,6 +58,7 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
   catch <- read.table(paste(direct,paste(paste0(proj.fname,"OFL",s),'xx6',sep='.'),sep="\\"))
   colnames(catch) <- seq(fyr,fyr+ncol(catch)-1)
   catch.median <- apply(catch,2,median)
+  catch.median<-round(catch.median,digits=0)
   return(catch.median[s+1])
 } #end OFL function
 
