@@ -1,21 +1,51 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\GBYT"
+direct<-"C:\\NFT\\AGEPROV40\\Haddock"
 setwd(direct)
-proj.fname<-"Fref025" #AgePro name to work from
+proj.fname<-"GBH_2017UPDATE_4YR" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-26800
-Fmsy<-0.25
+Bmsy<-104300
+Fmsy<-0.57
 decimals<-3
 
+###inputs for long-term MSY agepro run; if desired
+domsy<-TRUE #Do the MSY, TRUE, or not, FALSE
+msy.name<-"GBH_FMSY_AGEPRO_KEEP_HIGH_RECR" #name of agepro
+CIwant<-data.frame(low=0.05,hi=0.95) #What CIs do you want?
+fmsyold<-999
+Bmsyold<-999
+msyold<-999
+recrold<-999
+nyr.avg<-10 #average how many of the last years of long-term proj for ref point?
+
 ################################################################
+source(paste(direct,"Analyze_AgePro.R",sep="\\")) #function that will analyze age pro results (e.g., calc median SSB, etc.)
+
+###Longterm MSY agepro stuff
+if(domsy){
+  #Run agepro 
+  agepro.run<- shell(paste("  agepro40  ", paste0(msy.name,".INP"), sep=""), mustWork=F, intern=T )
+  MSYstuff<-MSYageprofxn(proj.fname.b=msy.name,direct=direct,decimals=decimals,fmsyold=fmsyold,nyr.avg=nyr.avg,CIwant=CIwant)
+  
+  ##write a txt file to send to Dan
+  write(paste0("FMSY<-c(\"",fmsyold,'\",\"',Fmsy,'\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"))
+  write(paste0("SSBMSY<-c(\"",Bmsyold,'\"',',\"',MSYstuff$SSBMSY," (",MSYstuff$SSBMSYCI[1]," - ",MSYstuff$SSBMSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("MSY<-c(\"",msyold,'\"',',\"',MSYstuff$MSY," (",MSYstuff$MSYCI[1]," - ",MSYstuff$MSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("Recr<-c(\"",recrold,'\"',',\"',MSYstuff$Recr," (",MSYstuff$RecrCI[1]," - ",MSYstuff$RecrCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("FMSYpt.est<-",Fmsy), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("SSBMSYpt.est<-",as.numeric(gsub(",","",MSYstuff$SSBMSY))), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("PYear<-c(",MSYstuff$fyr,",",MSYstuff$fyr+1,",",MSYstuff$fyr+2,",",MSYstuff$fyr+3,")"), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+} #end if(domsy)
+
+###End longterm MSY
+
+###Short-term projections and control rule application
 #Read in an agepro input for manipulation later
 input <- readLines(con=(paste(direct,paste(proj.fname,'INP',sep='.'),sep="\\"))) #read starting agepro file
 fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
-source(paste(direct,"Analyze_AgePro.R",sep="\\")) #function that will analyze age pro results (e.g., calc median SSB, etc.)
 
 #Run agepro using intial input file; just a starting point.
 agepro.run<- shell(paste("  agepro40  ", paste0(proj.fname,".INP"), sep=""), mustWork=F, intern=T )

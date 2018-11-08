@@ -62,3 +62,41 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
   return(catch.median[s+1])
 } #end OFL function
 
+
+##Get MSY ref points and CIs from long-term agepro run
+MSYageprofxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,nyr.avg=NULL,CIwant=NULL){
+  input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
+  fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
+  lyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],7,10)) #ID first year from Input file
+  proj.yrs <- seq(fyr,lyr)
+  avg.yrs <- tail(as.character(proj.yrs), nyr.avg)
+  
+  #SSB
+  ssb.b <- read.table(paste(direct,paste(proj.fname.b,'xx3',sep='.'),sep="\\"))
+  colnames(ssb.b) <- proj.yrs
+  ssb.median.b <- apply(ssb.b,2,median)
+  ssb.CI.b <- apply(ssb.b,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+
+  ssb.brp <- format(round(mean(ssb.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  ssb.brp.CI <- format(round(rowMeans(ssb.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  
+  #catch - MSY
+  catch.b <- read.table(paste(direct,paste(proj.fname.b,'xx6',sep='.'),sep="\\"))
+  colnames(catch.b) <- proj.yrs
+  catch.median.b <- apply(catch.b,2,median)
+  catch.CI.b <- apply(catch.b,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+  
+  catch.brp <- format(round(mean(catch.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  catch.brp.CI <- format(round(rowMeans(catch.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  
+  #recruitment
+  rec.b <- read.table(paste(direct,paste(proj.fname.b,'xx2',sep='.'),sep="\\"))
+  colnames(rec.b) <- proj.yrs
+  rec.median.b <- apply(rec.b,2,median)
+  rec.CI.b <- apply(rec.b,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+  
+  rec.brp <- format(round(mean(rec.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  rec.brp.CI <- format(round(rowMeans(rec.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  
+  return(list("SSBMSY"=ssb.brp,"SSBMSYCI"=ssb.brp.CI,"MSY"=catch.brp,"MSYCI"=catch.brp.CI,"Recr"=rec.brp,"RecrCI"=rec.brp.CI,"fyr"=fyr))
+}
