@@ -24,24 +24,6 @@ nyr.avg<-10 #average how many of the last years of long-term proj for ref point?
 ################################################################
 source(paste(direct,"Analyze_AgePro.R",sep="\\")) #function that will analyze age pro results (e.g., calc median SSB, etc.)
 
-###Longterm MSY agepro stuff
-if(domsy){
-  #Run agepro 
-  agepro.run<- shell(paste("  agepro40  ", paste0(msy.name,".INP"), sep=""), mustWork=F, intern=T )
-  MSYstuff<-MSYageprofxn(proj.fname.b=msy.name,direct=direct,decimals=decimals,fmsyold=fmsyold,nyr.avg=nyr.avg,CIwant=CIwant)
-  
-  ##write a txt file to send to Dan
-  write(paste0("FMSY<-c(\"",fmsyold,'\",\"',Fmsy,'\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"))
-  write(paste0("SSBMSY<-c(\"",Bmsyold,'\"',',\"',MSYstuff$SSBMSY," (",MSYstuff$SSBMSYCI[1]," - ",MSYstuff$SSBMSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-  write(paste0("MSY<-c(\"",msyold,'\"',',\"',MSYstuff$MSY," (",MSYstuff$MSYCI[1]," - ",MSYstuff$MSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-  write(paste0("Recr<-c(\"",recrold,'\"',',\"',MSYstuff$Recr," (",MSYstuff$RecrCI[1]," - ",MSYstuff$RecrCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-  write(paste0("FMSYpt.est<-",Fmsy), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-  write(paste0("SSBMSYpt.est<-",as.numeric(gsub(",","",MSYstuff$SSBMSY))), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-  write(paste0("PYear<-c(",MSYstuff$fyr,",",MSYstuff$fyr+1,",",MSYstuff$fyr+2,",",MSYstuff$fyr+3,")"), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
-} #end if(domsy)
-
-###End longterm MSY
-
 ###Short-term projections and control rule application
 #Read in an agepro input for manipulation later
 input <- readLines(con=(paste(direct,paste(proj.fname,'INP',sep='.'),sep="\\"))) #read starting agepro file
@@ -160,3 +142,24 @@ threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
+
+###Longterm MSY agepro stuff
+if(domsy){
+  #Run agepro 
+  agepro.run<- shell(paste("  agepro40  ", paste0(msy.name,".INP"), sep=""), mustWork=F, intern=T )
+  MSYstuff<-MSYageprofxn(proj.fname.b=msy.name,short.proj.name=paste0(proj.fname,s),direct=direct,decimals=decimals,fmsyold=fmsyold,nyr.avg=nyr.avg,CIwant=CIwant)
+  
+  ##write a txt file to send to Dan
+  write(paste0("FMSY<-c(\"",fmsyold,'\",\"',Fmsy,'\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"))
+  write(paste0("SSBMSY<-c(\"",Bmsyold,'\"',',\"',MSYstuff$SSBMSY," (",MSYstuff$SSBMSYCI[1]," - ",MSYstuff$SSBMSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("MSY<-c(\"",msyold,'\"',',\"',MSYstuff$MSY," (",MSYstuff$MSYCI[1]," - ",MSYstuff$MSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("Recr<-c(\"",recrold,'\"',',\"',MSYstuff$Recr," (",MSYstuff$RecrCI[1]," - ",MSYstuff$RecrCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("FMSYpt.est<-",Fmsy), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("SSBMSYpt.est<-",as.numeric(gsub(",","",MSYstuff$SSBMSY))), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("PYear<-c(",MSYstuff$fyr,",",MSYstuff$fyr+1,",",MSYstuff$fyr+2,",",MSYstuff$fyr+3,")"), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("PCatch<-c(\"",MSYstuff$catch4yr[1],'\"',',\"',MSYstuff$catch4yr[2]," (",MSYstuff$catch4yrCI[1,2]," - ",MSYstuff$catch4yrCI[2,2],')\",','\"',MSYstuff$catch4yr[3]," (",MSYstuff$catch4yrCI[1,3]," - ",MSYstuff$catch4yrCI[2,3],')\",','\"',MSYstuff$catch4yr[4]," (",MSYstuff$catch4yrCI[1,4]," - ",MSYstuff$catch4yrCI[2,4],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("PSSB<-c(\"",MSYstuff$ssb4yr[1],'\"',',\"',MSYstuff$ssb4yr[2]," (",MSYstuff$ssb4yrCI[1,2]," - ",MSYstuff$ssb4yrCI[2,2],')\",','\"',MSYstuff$ssb4yr[3]," (",MSYstuff$ssb4yrCI[1,3]," - ",MSYstuff$ssb4yrCI[2,3],')\",','\"',MSYstuff$ssb4yr[4]," (",MSYstuff$ssb4yrCI[1,4]," - ",MSYstuff$ssb4yrCI[2,4],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+  write(paste0("PF<-c(\"",MSYstuff$fmult4yr[1]," (",MSYstuff$fmult4yrCI[1,1]," - ",MSYstuff$fmult4yrCI[2,1],'\",\"',MSYstuff$fmult4yr[2],'\",\"',MSYstuff$fmult4yr[3],'\",\"',MSYstuff$fmult4yr[4],'\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
+} #end if(domsy)
+
+###End longterm MSY

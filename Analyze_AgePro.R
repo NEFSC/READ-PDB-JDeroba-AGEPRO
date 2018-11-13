@@ -64,12 +64,13 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
 
 
 ##Get MSY ref points and CIs from long-term agepro run
-MSYageprofxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,nyr.avg=NULL,CIwant=NULL){
+MSYageprofxn<-function(proj.fname.b=NULL,short.proj.name=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,nyr.avg=NULL,CIwant=NULL){
   input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
   fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
   lyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],7,10)) #ID first year from Input file
   proj.yrs <- seq(fyr,lyr)
   avg.yrs <- tail(as.character(proj.yrs), nyr.avg)
+  four.yrs<-head(as.character(proj.yrs),4)
   
   #SSB
   ssb.b <- read.table(paste(direct,paste(proj.fname.b,'xx3',sep='.'),sep="\\"))
@@ -80,6 +81,13 @@ MSYageprofxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,
   ssb.brp <- format(round(mean(ssb.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
   ssb.brp.CI <- format(round(rowMeans(ssb.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
   
+  ssb.short <- read.table(paste(direct,paste(short.proj.name,'xx3',sep='.'),sep="\\"))
+  colnames(ssb.short)<-seq(fyr,fyr+3)
+  ssb.median.short <- apply(ssb.short,2,median)
+  ssb.CI.short <- apply(ssb.short,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+  ssb4yr<-format(round(ssb.median.short[four.yrs],digits=0),big.mark=",",trim=TRUE)
+  ssb4yr.CI<-format(round(ssb.CI.short[,four.yrs],digits=0),big.mark=",",trim=TRUE)
+  
   #catch - MSY
   catch.b <- read.table(paste(direct,paste(proj.fname.b,'xx6',sep='.'),sep="\\"))
   colnames(catch.b) <- proj.yrs
@@ -88,6 +96,13 @@ MSYageprofxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,
   
   catch.brp <- format(round(mean(catch.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
   catch.brp.CI <- format(round(rowMeans(catch.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  
+  catch.short <- read.table(paste(direct,paste(short.proj.name,'xx6',sep='.'),sep="\\"))
+  colnames(catch.short)<-seq(fyr,fyr+3)
+  catch.median.short <- apply(catch.short,2,median)
+  catch.CI.short <- apply(catch.short,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+  catch4yr<-format(round(catch.median.short[four.yrs],digits=0),big.mark=",",trim=TRUE)
+  catch4yr.CI<-format(round(catch.CI.short[,four.yrs],digits=0),big.mark=",",trim=TRUE)
   
   #recruitment
   rec.b <- read.table(paste(direct,paste(proj.fname.b,'xx2',sep='.'),sep="\\"))
@@ -98,5 +113,14 @@ MSYageprofxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,
   rec.brp <- format(round(mean(rec.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
   rec.brp.CI <- format(round(rowMeans(rec.CI.b[,avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
   
-  return(list("SSBMSY"=ssb.brp,"SSBMSYCI"=ssb.brp.CI,"MSY"=catch.brp,"MSYCI"=catch.brp.CI,"Recr"=rec.brp,"RecrCI"=rec.brp.CI,"fyr"=fyr))
+  #Fmult
+  fmult <- read.table(paste(direct,paste(short.proj.name,'xx9',sep='.'),sep="\\"))
+  colnames(fmult) <- seq(fyr,fyr+3)
+  fmult.median <- apply(fmult,2,median)
+  fmult.CI <- apply(fmult,2,function(x){quantile(x,c(CIwant$low,CIwant$hi)) })
+  
+  fmult4yr<-format(round(fmult.median[four.yrs],digits=decimals),big.mark=",",trim=TRUE)
+  fmult4yr.CI<-format(round(fmult.CI[,four.yrs],digits=decimals),big.mark=",",trim=TRUE)
+  
+  return(list("SSBMSY"=ssb.brp,"SSBMSYCI"=ssb.brp.CI,"MSY"=catch.brp,"MSYCI"=catch.brp.CI,"Recr"=rec.brp,"RecrCI"=rec.brp.CI,"fyr"=fyr,"catch4yr"=catch4yr,"catch4yrCI"=catch4yr.CI,"ssb4yr"=ssb4yr,"ssb4yrCI"=ssb4yr.CI,"fmult4yr"=fmult4yr,"fmult4yrCI"=fmult4yr.CI))
 }
