@@ -1,19 +1,19 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\Haddock"
+direct<-"C:\\NFT\\AGEPROV40\\GBYT"
 setwd(direct)
-proj.fname<-"GBH_2017UPDATE_4YR" #AgePro name to work from
+proj.fname<-"Fref025" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
 FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-104300
-Fmsy<-0.57
+Bmsy<-26800
+Fmsy<-0.25
 decimals<-3
 
 ###inputs for long-term MSY agepro run; if desired
 domsy<-TRUE #Do the MSY, TRUE, or not, FALSE
-msy.name<-"GBH_FMSY_AGEPRO_KEEP_HIGH_RECR" #name of agepro
+msy.name<-"Fref025_long" #name of agepro
 CIwant<-data.frame(low=0.05,hi=0.95) #What CIs do you want?
 fmsyold<-999
 Bmsyold<-999
@@ -87,7 +87,15 @@ for(s in 1:(length(SSBlevels)-1)){
   harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
-annual["OFL"]<-OFL
+#if F=Fmsy in all years>1 then catch should = OFL exactly, but won't due to differences
+#in specifying F versus catch in agepro.  So if F=Fmsy in all years then OFL=catch; otherwise,
+# use iterative solution from loops.
+if(length(unique(annual$F[2:nrow(annual)]))==1 & annual$F[2]==Fmsy) {
+  annual[2:nrow(annual),"OFL"]<-annual$Catch[2:nrow(annual)]
+} else {
+  annual["OFL"]<-OFL
+}
+
 
 ##Run the final agepro at the catch levels associated with the F values to get P(overfishing)
 catch <- read.table(paste(direct,paste(paste0(proj.fname,s),'xx6',sep='.'),sep="\\"))
@@ -105,7 +113,7 @@ annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy
 annual["P(overfishing)"]<-annual.catch["P(overfishing)"]
 annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
 
-rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
+rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
 #Run each HCR with constant catch, i.e., catch in year one applies to all years
 ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
@@ -141,7 +149,7 @@ for(s in 1:(length(SSBlevels)-1)){
 threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 
-rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,s,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
+rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
 
 ###Longterm MSY agepro stuff
 if(domsy){
