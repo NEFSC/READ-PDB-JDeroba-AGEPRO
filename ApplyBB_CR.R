@@ -105,7 +105,7 @@ ifile <- paste(proj.fname,paste0(s,"b"),".INP", sep="") #name of new agepro
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
 harvscen.num<-rep(1,length(catch)) #change numbers here so agepro uses catch instead of fmult
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
-harvscen<-round(catch.median,0)
+harvscen<-round(catch.median,4)
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
 write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
