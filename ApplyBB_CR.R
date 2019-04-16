@@ -1,18 +1,18 @@
 rm(list=ls())
-direct<-"C:\\NFT\\AGEPROV40\\GBYT"
+direct<-"C:\\Herring\\2018 Assessment\\Assessments\\ASAP\\Run26_2017\\MCMC\\HCRProjections\\Final"
 setwd(direct)
-proj.fname<-"Fref025" #AgePro name to work from
+proj.fname<-"TEST_CI_FIX19CATCH" #AgePro name to work from
 
 #input control rule parameters and MSY reference points
-FracBmsyThreshHi=c(0.0) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
-FracBmsyThreshLo=c(0.0) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
-FracFtarg<-c(1) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-26800
-Fmsy<-0.25
+FracBmsyThreshHi=c(0.5) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
+FracBmsyThreshLo=c(0.1) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
+FracFtarg<-c(0.8) #fraction of Fmsy that serves as max target F in control rule
+Bmsy<-189000
+Fmsy<-0.51
 decimals<-3
 
 ###inputs for long-term MSY agepro run; if desired
-domsy<-TRUE #Do the MSY, TRUE, or not, FALSE
+domsy<-FALSE #Do the MSY, TRUE, or not, FALSE
 msy.name<-"Fref025_long" #name of agepro
 CIwant<-data.frame(low=0.05,hi=0.95) #What CIs do you want?
 fmsyold<-999
@@ -47,8 +47,10 @@ harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harve
 harvscen<-harvscen[harvscen != ""]
 #Create OFL holder
 OFL<-c()
+OFLlow<-c()
+OFLhi<-c()
 #########################################
-for(s in 1:(length(SSBlevels)-1)){
+for(s in 3:(length(SSBlevels)-1)){
   if(s>1) {
   #Get status from previous age pro run and then reapply CR and run agepro again
   harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so we can change one element of harvscen
@@ -63,7 +65,8 @@ for(s in 1:(length(SSBlevels)-1)){
   write(input[1:(which(input == "[HARVEST]")+1)], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
   harvscen[s+1]<-round(Fmult,decimals)
   harvscen<-paste(harvscen,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
-  write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
+  write(harvscen,file=
+          paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
   write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
   ###Run AgePro with proj.fname_s.INP
   agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
@@ -79,11 +82,16 @@ for(s in 1:(length(SSBlevels)-1)){
     harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
     harvscen.ofl[s+1]<-Fmsy
     OFL[s]<-"--"
+    OFLhi[s]<-"--"
+    OFLlow[s]<-"--"
   } else {
     harvscen.ofl[s]<-catch.median.cr[s]
     harvscen.ofl[s+1]<-Fmsy
   }
-  OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
+  OFLres<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
+  OFL[s+1]<-OFLres[1]
+  OFLlow[s+1]<-OFLres[2]
+  OFLhi[s+1]<-OFLres[3]
   harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
@@ -93,8 +101,10 @@ annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbm
 if(length(unique(annual$F[2:nrow(annual)]))==1 & annual$F[2]==Fmsy) {
   annual[2:nrow(annual),"OFL"]<-annual$Catch[2:nrow(annual)]
 } else {
-  annual["OFL"]<-OFL
+  annual["OFL"]<-unlist(OFL)
 }
+annual["OFL(5%)"]<-unlist(OFLlow)
+annual["OFL(95%)"]<-unlist(OFLhi)
 
 
 ##Run the final agepro at the catch levels associated with the F values to get P(overfishing)
@@ -112,6 +122,8 @@ agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals)
 annual["P(overfishing)"]<-annual.catch["P(overfishing)"]
 annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
+annual["F(5%)"]<-annual.catch["F(5%)"]
+annual["F(95%)"]<-annual.catch["F(95%)"]
 
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 

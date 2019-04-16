@@ -19,7 +19,7 @@ AnaAgePro<-function(proj.fname.b=NULL,direct=NULL,fmsy=NULL,ssbmsy=NULL,decimals
   ssb.b <- read.table(paste(direct.b,paste(proj.fname.b,'xx3',sep='.'),sep="\\"))
   colnames(ssb.b) <- seq(fyr,fyr+ncol(ssb.b)-1)
   ssb.median.b <- apply(ssb.b,2,median)
-  ssb.CI.b <- apply(ssb.b,2,function(x){quantile(x,c(0.1,0.9)) })
+  ssb.CI.b <- apply(ssb.b,2,function(x){quantile(x,c(0.05,0.95)) })
   frac_ofssbmsy.b<-(ssb.b[names(ssb.b) %in% (fyr:(fyr+ncol(ssb.b)-1))])/ssbmsy
   num_overfished.b<-ifelse(frac_ofssbmsy.b<0.5,1,0)
   prob_overfished.b<-colSums(num_overfished.b)/nrow(num_overfished.b)
@@ -28,19 +28,20 @@ AnaAgePro<-function(proj.fname.b=NULL,direct=NULL,fmsy=NULL,ssbmsy=NULL,decimals
   catch.b <- read.table(paste(direct.b,paste(proj.fname.b,'xx6',sep='.'),sep="\\"))
   colnames(catch.b) <- names(ssb.b)
   catch.median.b <- apply(catch.b,2,median)
-  catch.CI.b <- apply(catch.b,2,function(x){quantile(x,c(0.1,0.9)) })
+  catch.CI.b <- apply(catch.b,2,function(x){quantile(x,c(0.05,0.95)) })
+  
   
   #Fmult and P(overfishing)
   fmult.b <- read.table(paste(direct.b,paste(proj.fname.b,'xx9',sep='.'),sep="\\"))
   colnames(fmult.b) <- names(ssb.b)
   fmult.median.b <- apply(fmult.b,2,median)
-  fmult.CI.b <- apply(fmult.b,2,function(x){quantile(x,c(0.1,0.9)) })
+  fmult.CI.b <- apply(fmult.b,2,function(x){quantile(x,c(0.05,0.95)) })
   frac_offmsy.b<-(fmult.b[names(fmult.b) %in% (fyr:(fyr+ncol(ssb.b)-1))])/fmsy
   num_overfishing.b<-ifelse(frac_offmsy.b>1,1,0)
   prob_overfishing.b<-colSums(num_overfishing.b)/nrow(num_overfishing.b)
 
-resultswant<-data.frame(round(catch.median.b,digits=0),round(fmult.median.b,decimals),round(ssb.median.b,0),round(prob_overfishing.b,decimals),round(prob_overfished.b,decimals))
-names(resultswant)<-c("Catch","F","SSB","P(overfishing)","P(overfished)")
+resultswant<-data.frame(round(catch.median.b,digits=0),catch.CI.b[1,],catch.CI.b[2,],round(fmult.median.b,decimals),fmult.CI.b[1,],fmult.CI.b[2,],round(ssb.median.b,0),ssb.CI.b[1,],ssb.CI.b[2,],round(prob_overfishing.b,decimals),round(prob_overfished.b,decimals))
+names(resultswant)<-c("Catch","Catch(5%)","Catch(95%)","F","F(5%)","F(95%)","SSB","SSB(5%)","SSB(95%)","P(overfishing)","P(overfished)")
 return(resultswant)
 
 } #end function
@@ -59,7 +60,9 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
   colnames(catch) <- seq(fyr,fyr+ncol(catch)-1)
   catch.median <- apply(catch,2,median)
   catch.median<-round(catch.median,digits=0)
-  return(catch.median[s+1])
+  catch.CI.b <- apply(catch,2,function(x){quantile(x,c(0.05,0.95)) })
+  resultoflwant<-data.frame(catch.median[s+1],catch.CI.b[1,s+1],catch.CI.b[2,s+1])
+  return(resultoflwant)
 } #end OFL function
 
 
