@@ -7,6 +7,7 @@ The only useful function is AgeProRun.  The user must provide a directory (direc
 *Example code*
 
 devtools::install_github("jonathanderoba/AGEPRO/AgePro")
+
 library(AgePro)
 
 AgeProRun(direct = "C:\\NFT\\AGEPROV40\\GBYT_test",proj.fname="Fref025",FracBmsyThreshHi = 0.0,FracBmsyThreshLo = 0.0,
