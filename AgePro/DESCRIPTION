@@ -1,10 +1,10 @@
 Package: AgePro
-Title: What the Package Does (one line, title case)
-Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Title: Iteratively runs AgePro for short-term projections and optionally, a longterm MSY run.
+Version: 1.0
+Authors@R: person("Jonathan", "Deroba", email = "jonathan.deroba@noaa.gov", role = c("aut", "cre"))
+Description: The only useful function is AgeProRun.  The user must provide a directory (direct) that contains a functional AgePro.INP file (proj.fname).  **The code assumes that proj.fname points to the directory containing the correct ASAP.BSN file and that the first year of the projection is a "bridge year" with the correct catch already specified.  The code will create two .docx tables.  The first table "..._annual.docx" is the outcome of annually applying a user specifed harvest control rule and reports: catch, F, SSB, P(overfishing), P(overfished), OFL, and SSB/SSBmsy.  The second table "..._concatch.docx" takes the catch value from year 2 of "...annual.docx" and applies this catch for the remainder of the projection period (a constant catch).  Optionally (if domsy=TRUE), the user can provide a functional AgePro.INP file setup for a longterm projection at Fmsy (msy.name) in the same directory, along with some other conditional inputs to the function, and the code will produce LaTex code in a .txt file comparing old and new MSY reference points (with CI for new ref points), and short-term (four year) projection results with CI.  This .txt file should be readily compatible for input to the groundfish summary reports.
 Depends: R (>= 3.3.3)
-License: What license is it under?
+License: Bite Me productions
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1

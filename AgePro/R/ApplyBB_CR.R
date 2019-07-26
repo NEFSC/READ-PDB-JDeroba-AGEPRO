@@ -2,27 +2,27 @@
 #' Iteratively apply agepro
 #' 
 #' Does iterative agepro runs
-#' @param FracBmsyThreshLo is the fraction of Bmsy at which no fishing occurs.
-#' @param FracBmsyThreshHi is the fraction of Bmsy above which fishing is held constant at FracFtarg.  F changes linearly between FracBmsyThreshLo and FracBmsyThreshHi
+#' @param FracBmsyThreshLo is the fraction of Bmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.
+#' @param FracBmsyThreshHi is the fraction of Bmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.
 #' @param FracFtarg is the proportion of Fmsy that defines the maximum F desired.  Enter the fraction between 0 and 1, not the desired F rate.
 #' @param Fmsy is exactly that; Fmsy.
 #' @param Bmsy is Bmsy
-#' @param direct is the directory location of proj.fname
-#' @param proj.fname is the age pro input file without the .INP at the end
+#' @param direct is the directory location of a functional agepro .INP file; proj.fname
+#' @param proj.fname is a functional age pro input file without the .INP at the end.  First year should be setup as "bridge year" with catch specified.
 #' @param decimals is the number of decimals for output values
-#' @param domsy do longterm MSY ref point run: TRUE or FALSE
-#' @param msy.name name of agepro run for longterm ref point calculation
-#' @param fmsyold old fmsy value
-#' @param Bmsyold is old Bmsy value
-#' @param msyold is old msy value
-#' @param recrold is old recruitment at MSY value
-#' @param nyr.avg is the number of years from the end of the longterm projection (e.g., last 10 years) to be averaged to define ref points (e.g., Bmsy)
+#' @param domsy do longterm MSY ref point run: TRUE or FALSE.  If TRUE, creates LaTex code for groundfish short report.
+#' @param msy.name needed only if domsy=TRUE. name of functional agepro run for longterm MSY ref point projection
+#' @param fmsyold needed only if domsy=TRUE. old fmsy value to compare to new projection
+#' @param Bmsyold needed only if domsy=TRUE. is old Bmsy value to compare to new projection
+#' @param msyold needed only if domsy=TRUE. is old msy value to compare to new projection
+#' @param recrold needed only if domsy=TRUE. is old recruitment at MSY value to compare to new projection
+#' @param nyr.avg needed only if domsy=TRUE. is the number of years from the end of the longterm projection (e.g., last 10 years) to be averaged to define ref points (e.g., Bmsy)
 #' @keywords AgePro
 #' @export
 #' @examples
 #' AgeProRun()
-AgeProRun<-function(direct=NULL,proj.fname=NULL,FracBmsyThreshHi=NULL,FracBmsyThreshLo=NULL,FracFtarg=NULL,Bmsy=NULL,Fmsy=NULL,decimals=NULL,domsy=NULL,
-                    msy.name=NULL,CIwantLow=NULL,CIwantHi=NULL,fmsyold=NULL,Bmsyold=NULL,msyold=NULL,recrold=NULL,nyr.avg=NULL){
+AgeProRun<-function(direct=NULL,proj.fname=NULL,FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,Bmsy=NULL,Fmsy=NULL,decimals=3,domsy=FALSE,
+                    msy.name=NULL,CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,Bmsyold=999,msyold=999,recrold=999,nyr.avg=10){
   
 direct<-direct
 setwd(direct)
