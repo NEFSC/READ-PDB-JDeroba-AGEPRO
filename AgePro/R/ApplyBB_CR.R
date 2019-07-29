@@ -21,8 +21,15 @@
 #' @export
 #' @examples
 #' AgeProRun()
-AgeProRun<-function(direct=NULL,proj.fname=NULL,FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,Bmsy=NULL,Fmsy=NULL,decimals=3,domsy=FALSE,
-                    msy.name=NULL,CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,Bmsyold=999,msyold=999,recrold=999,nyr.avg=10){
+AgeProRun<-function(direct="missing",proj.fname="missing",FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,Bmsy="missing",Fmsy="missing",decimals=3,domsy=FALSE,
+                    msy.name="missing",CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,Bmsyold=999,msyold=999,recrold=999,nyr.avg=10){
+  
+  inputsa<-c(direct,proj.fname,FracBmsyThreshHi,FracBmsyThreshLo,FracFtarg,Bmsy,Fmsy,decimals)
+  inputnames<-c("direct","proj.fname","FracBmsyThreshHi","FracBmsyThreshLo","FracFtarg","Bmsy","Fmsy","decimals")
+  for(c in 1:length(inputnames)){
+    if(inputsa[c]=="missing"){stop(paste0(inputnames[c]," is missing"))}
+  }
+  if(domsy==TRUE & msy.name=="missing") {stop(paste0("msy.name"," is missing"))}
   
 direct<-direct
 setwd(direct)
