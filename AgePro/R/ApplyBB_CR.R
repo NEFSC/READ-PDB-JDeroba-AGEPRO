@@ -2,18 +2,18 @@
 #' Iteratively apply agepro
 #' 
 #' Does iterative agepro runs
-#' @param FracBmsyThreshLo is the fraction of Bmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.
-#' @param FracBmsyThreshHi is the fraction of Bmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.
+#' @param FracBmsyThreshLo is the fraction of SSBmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.  (Default is 0.0 and produces constant F if FracBmsyThreshHi also 0.0)
+#' @param FracBmsyThreshHi is the fraction of SSBmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.  (Default is 0.0 and produces constant F if FracBmsyThreshLo also 0.0)
 #' @param FracFtarg is the proportion of Fmsy that defines the maximum F desired.  Enter the fraction between 0 and 1, not the desired F rate.
 #' @param Fmsy is exactly that; Fmsy.
-#' @param Bmsy is Bmsy
+#' @param SSBmsy is spawning stock biomass at msy level
 #' @param direct is the directory location of a functional agepro .INP file; proj.fname
 #' @param proj.fname is a functional age pro input file without the .INP at the end.  First year should be setup as "bridge year" with catch specified.
 #' @param decimals is the number of decimals for output values
 #' @param domsy do longterm MSY ref point run: TRUE or FALSE.  If TRUE, creates LaTex code for groundfish short report.
 #' @param msy.name needed only if domsy=TRUE. name of functional agepro run for longterm MSY ref point projection
 #' @param fmsyold needed only if domsy=TRUE. old fmsy value to compare to new projection
-#' @param Bmsyold needed only if domsy=TRUE. is old Bmsy value to compare to new projection
+#' @param SSBmsyold needed only if domsy=TRUE. is old SSBmsy value to compare to new projection
 #' @param msyold needed only if domsy=TRUE. is old msy value to compare to new projection
 #' @param recrold needed only if domsy=TRUE. is old recruitment at MSY value to compare to new projection
 #' @param nyr.avg needed only if domsy=TRUE. is the number of years from the end of the longterm projection (e.g., last 10 years) to be averaged to define ref points (e.g., Bmsy)
@@ -21,11 +21,11 @@
 #' @export
 #' @examples
 #' AgeProRun()
-AgeProRun<-function(direct="missing",proj.fname="missing",FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,Bmsy="missing",Fmsy="missing",decimals=3,domsy=FALSE,
-                    msy.name="missing",CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,Bmsyold=999,msyold=999,recrold=999,nyr.avg=10){
+AgeProRun<-function(direct="missing",proj.fname="missing",FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,SSBmsy="missing",Fmsy="missing",decimals=3,domsy=FALSE,
+                    msy.name="missing",CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,SSBmsyold=999,msyold=999,recrold=999,nyr.avg=10){
   
-  inputsa<-c(direct,proj.fname,FracBmsyThreshHi,FracBmsyThreshLo,FracFtarg,Bmsy,Fmsy,decimals)
-  inputnames<-c("direct","proj.fname","FracBmsyThreshHi","FracBmsyThreshLo","FracFtarg","Bmsy","Fmsy","decimals")
+  inputsa<-c(direct,proj.fname,FracBmsyThreshHi,FracBmsyThreshLo,FracFtarg,SSBmsy,Fmsy,decimals)
+  inputnames<-c("direct","proj.fname","FracBmsyThreshHi","FracBmsyThreshLo","FracFtarg","SSBmsy","Fmsy","decimals")
   for(c in 1:length(inputnames)){
     if(inputsa[c]=="missing"){stop(paste0(inputnames[c]," is missing"))}
   }
@@ -40,7 +40,7 @@ file.copy(system.file("exe","agepro40.exe",package="AgePro"),direct,overwrite = 
 FracBmsyThreshHi=c(FracBmsyThreshHi) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(FracBmsyThreshLo) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(FracFtarg) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-Bmsy
+Bmsy<-SSBmsy
 Fmsy<-Fmsy
 decimals<-decimals
 
@@ -49,7 +49,7 @@ domsy<-domsy #Do the MSY, TRUE, or not, FALSE
 msy.name<-msy.name #name of agepro
 CIwant<-data.frame(low=CIwantLow,hi=CIwantHi) #What CIs do you want?
 fmsyold<-fmsyold
-Bmsyold<-Bmsyold
+Bmsyold<-SSBmsyold
 msyold<-msyold
 recrold<-recrold
 nyr.avg<-nyr.avg #average how many of the last years of long-term proj for ref point?

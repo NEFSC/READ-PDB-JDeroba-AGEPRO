@@ -4,10 +4,11 @@
 \alias{AgeProRun}
 \title{Iteratively apply agepro}
 \usage{
-AgeProRun(direct = NULL, proj.fname = NULL, FracBmsyThreshHi = 0,
-  FracBmsyThreshLo = 0, FracFtarg = 1, Bmsy = NULL, Fmsy = NULL,
-  decimals = 3, domsy = FALSE, msy.name = NULL, CIwantLow = 0.05,
-  CIwantHi = 0.95, fmsyold = 999, Bmsyold = 999, msyold = 999,
+AgeProRun(direct = "missing", proj.fname = "missing",
+  FracBmsyThreshHi = 0, FracBmsyThreshLo = 0, FracFtarg = 1,
+  SSBmsy = "missing", Fmsy = "missing", decimals = 3,
+  domsy = FALSE, msy.name = "missing", CIwantLow = 0.05,
+  CIwantHi = 0.95, fmsyold = 999, SSBmsyold = 999, msyold = 999,
   recrold = 999, nyr.avg = 10)
 }
 \arguments{
@@ -15,13 +16,13 @@ AgeProRun(direct = NULL, proj.fname = NULL, FracBmsyThreshHi = 0,
 
 \item{proj.fname}{is a functional age pro input file without the .INP at the end.  First year should be setup as "bridge year" with catch specified.}
 
-\item{FracBmsyThreshHi}{is the fraction of Bmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.}
+\item{FracBmsyThreshHi}{is the fraction of SSBmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.  (Default is 0.0 and produces constant F if FracBmsyThreshLo also 0.0)}
 
-\item{FracBmsyThreshLo}{is the fraction of Bmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.}
+\item{FracBmsyThreshLo}{is the fraction of SSBmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.  (Default is 0.0 and produces constant F if FracBmsyThreshHi also 0.0)}
 
 \item{FracFtarg}{is the proportion of Fmsy that defines the maximum F desired.  Enter the fraction between 0 and 1, not the desired F rate.}
 
-\item{Bmsy}{is Bmsy}
+\item{SSBmsy}{is spawning stock biomass at msy level}
 
 \item{Fmsy}{is exactly that; Fmsy.}
 
@@ -33,7 +34,7 @@ AgeProRun(direct = NULL, proj.fname = NULL, FracBmsyThreshHi = 0,
 
 \item{fmsyold}{needed only if domsy=TRUE. old fmsy value to compare to new projection}
 
-\item{Bmsyold}{needed only if domsy=TRUE. is old Bmsy value to compare to new projection}
+\item{SSBmsyold}{needed only if domsy=TRUE. is old SSBmsy value to compare to new projection}
 
 \item{msyold}{needed only if domsy=TRUE. is old msy value to compare to new projection}
 
