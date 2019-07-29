@@ -11,7 +11,6 @@ devtools::install_github("jonathanderoba/AGEPRO/AgePro")
 library(AgePro)
 
 AgeProRun(direct = "C:\\NFT\\AGEPROV40\\GBYT_test",proj.fname="Fref025",FracBmsyThreshHi = 0.0,FracBmsyThreshLo = 0.0,
-          FracFtarg = 1,Bmsy=26800,Fmsy = 0.25,decimals=3,domsy = TRUE,msy.name="FREF025_LONG",CIwantLow = 0.05,CIwantHi = 0.95,
-          fmsyold = 0.25,Bmsyold = 1000,msyold = 225,recrold = 55000,nyr.avg = 10)
-
+          FracFtarg = 1,SSBmsy=26800,Fmsy = 0.25,decimals=3,domsy = TRUE,msy.name="FREF025_LONG",CIwantLow = 0.05,CIwantHi = 0.95,
+          fmsyold = 999,SSBmsyold = 999,msyold = 999,recrold = 999,nyr.avg = 10)
 
