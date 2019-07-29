@@ -2,6 +2,7 @@
 #' Iteratively apply agepro
 #' 
 #' Does iterative agepro runs
+#' @import rmarkdown
 #' @param FracBmsyThreshLo is the fraction of SSBmsy below which no fishing occurs.  Above this value, F increases linearly to FracBmsyThreshHi.  (Default is 0.0 and produces constant F if FracBmsyThreshHi also 0.0)
 #' @param FracBmsyThreshHi is the fraction of SSBmsy above which fishing is held constant at FracFtarg.  Below this value, F declines linearly to FracBmsyThreshLo.  (Default is 0.0 and produces constant F if FracBmsyThreshLo also 0.0)
 #' @param FracFtarg is the proportion of Fmsy that defines the maximum F desired.  Enter the fraction between 0 and 1, not the desired F rate.
