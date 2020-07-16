@@ -108,7 +108,7 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
 #' @keywords AgePro
 #' @export
 #' @examples
-#' OFLfxn()
+#' MSYageprofxn()
 MSYageprofxn<-function(proj.fname.b=NULL,short.proj.name=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,nyr.avg=NULL,CIwant=NULL){
   input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
   fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
@@ -169,3 +169,33 @@ MSYageprofxn<-function(proj.fname.b=NULL,short.proj.name=NULL,direct=NULL,decima
   
   return(list("SSBMSY"=ssb.brp,"SSBMSYCI"=ssb.brp.CI,"MSY"=catch.brp,"MSYCI"=catch.brp.CI,"Recr"=rec.brp,"RecrCI"=rec.brp.CI,"fyr"=fyr,"catch4yr"=catch4yr,"catch4yrCI"=catch4yr.CI,"ssb4yr"=ssb4yr,"ssb4yrCI"=ssb4yr.CI,"fmult4yr"=fmult4yr,"fmult4yrCI"=fmult4yr.CI))
 }
+
+#' calculates Bmsy from longterm agepro run
+#' 
+#' Bmsy from agepro run
+#' @param proj.fname.b is the age pro input file without the .INP at the end
+#' @param decimals is the number decimals for output values
+#' @param nyr.avg is the number of years from the end of the longterm projection to be averaged to define ref points (e.g., Bmsy)
+#' @param direct is the directory location of proj.fname.b
+#' @keywords AgePro
+#' @export
+#' @examples
+#' Bmsyfxn()
+Bmsyfxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,nyr.avg=NULL){
+  input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
+  fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
+  lyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],7,10)) #ID first year from Input file
+  proj.yrs <- seq(fyr,lyr)
+  avg.yrs <- tail(as.character(proj.yrs), nyr.avg)
+  four.yrs<-head(as.character(proj.yrs),4)
+  
+  #SSB
+  ssb.b <- read.table(paste(direct,paste(proj.fname.b,'xx3',sep='.'),sep="\\"))
+  colnames(ssb.b) <- proj.yrs
+  ssb.median.b <- apply(ssb.b,2,median)
+  
+  ssb.brp <- format(round(mean(ssb.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  
+  return("SSBMSY"=ssb.brp)
+}
+
