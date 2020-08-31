@@ -112,6 +112,7 @@ for(s in 1:(length(SSBlevels)-1)){
   #apply CR
   Fmult<-BB_CR(SSBstatus=SSBlevels[s],SSBthresh=FracBmsyThreshHi,SSBthreshlo = FracBmsyThreshLo,FracFtarg=FracFtarg,Fmsy=Fmsy,CtrlRule=1) #call to HCR
   ifile <- paste(proj.fname,s,".INP", sep="") #name of new agepro
+  ifile_noext <- paste(proj.fname,s,sep="") #name of new agepro
   write(input[1:(which(input == "[HARVEST]")+1)], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
   harvscen[s+1]<-round(Fmult,decimals)
   harvscen<-paste(harvscen,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
@@ -119,26 +120,26 @@ for(s in 1:(length(SSBlevels)-1)){
   write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
   ###Run AgePro with proj.fname_s.INP
   agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
-  
-  ##Do iterative OFL calculation
-  ##get catches resulting from CR application
-  if(s>1){
-  catch.cr <- read.table(paste(direct,paste(paste0(proj.fname,s-1),'xx6',sep='.'),sep="\\"))
-  colnames(catch.cr) <- seq(fyr,fyr+ncol(catch.cr)-1)
-  catch.median.cr <- apply(catch.cr,2,median)
-  }
-  if(s==1){
-    harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
-    harvscen.ofl[s+1]<-Fmsy
-    OFL[s]<-"--"
-  } else {
-    harvscen.ofl[s]<-catch.median.cr[s]
-    harvscen.ofl[s+1]<-Fmsy
-  }
-  OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
-  harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
+
+######Do OFL - Get NAA from final run where HCR was applied above, just calculate OFL using Baranov
+######Solve for F to produce desired Canadian catch
+tempxx1.ofl<-read.table(paste(direct,paste0(ifile_noext,'.xx1'),sep="\\"))
+input.new.ofl<- readLines(con=(paste(direct,paste(ifile_noext,'INP',sep='.'),sep="\\"))) #read starting agepro file
+for(s in 1:(length(SSBlevels)-1)){
+  
+  if(s==1) {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-temp.concatch
+  } else {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-data.frame(OFL,temp.concatch)
+  }
+}
+OFL<-round(OFL,0)
+OFL<-data.frame("--",OFL)
+OFL<-t(OFL)
 #if F=Fmsy in all years>1 then catch should = OFL exactly, but won't due to differences
 #in specifying F versus catch in agepro.  So if F=Fmsy in all years then OFL=catch; otherwise,
 # use iterative solution from loops.
@@ -168,8 +169,9 @@ annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
 rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 #rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_annual.docx"),output_dir=direct,params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
-#Run each HCR with constant catch, i.e., catch in year one applies to all years
+#Run HCR with constant catch, i.e., catch in year one applies to all years
 ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
+ifile_noext <- paste(proj.fname,paste0(s,"_concatch"), sep="") #name of new agepro
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
 harvscen.num<-rep(1,length(catch))
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
@@ -179,6 +181,23 @@ write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifi
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
 
+######Do OFL for constant catch
+tempxx1.ofl<-read.table(paste(direct,paste0(ifile_noext,'.xx1'),sep="\\"))
+input.new.ofl<- readLines(con=(paste(direct,paste(ifile_noext,'INP',sep='.'),sep="\\"))) #read starting agepro file
+
+for(s in 1:(length(SSBlevels)-1)){
+  if(s==1) {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-temp.concatch
+  } else {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-data.frame(OFL,temp.concatch)
+  }
+}
+OFL<-round(OFL,0)
+OFL<-data.frame("--",OFL)
+OFL<-t(OFL)
+if(FALSE){
 ##Do iterative OFL calculation
 #reset the harvscen and harvscen.num values (should be 1 and then 0's and replaced in loop below)
 harvscen.num<-input[which(input == "[HARVEST]")+1]
@@ -198,6 +217,7 @@ for(s in 1:(length(SSBlevels)-1)){
  }
  OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
  harvscen.num[s+1]<-1
+}
 }
 threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)

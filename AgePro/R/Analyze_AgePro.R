@@ -18,6 +18,39 @@ BB_CR<-function(SSBstatus=NULL,SSBthresh=NULL,SSBthreshlo=NULL,FracFtarg=NULL,Fm
   }
 }
 
+#' applies baranov catch equation
+#' 
+#' used for OFL calcs
+#' @param xx1 is the xx1 file from an agepro run
+#' @param input is the agepro input file from ReadLines
+#' @param s is a looping quantity
+#' @param yr.names are years
+#' @param nages is number of ages
+#' @fmult is the fully selected F
+apply.baranov<-function(xx1=NULL,input=NULL,s=NULL,yr.names=NULL,nages=NULL,fmult=NULL){
+  naa.matrix<-(as.matrix(xx1[seq(s+1, nrow(xx1), length(yr.names)), ])/1000)
+  
+  sel<-input[which(input == "[FISHERY]")+2]
+  sel<-unlist(strsplit(sel,split=" ")) #
+  sel<-as.numeric(sel[sel != ""])
+  faa<-fmult*sel
+  
+  natmort<-input[which(input == "[NATMORT]")+2]
+  natmort<-unlist(strsplit(natmort,split=" ")) #
+  natmort<-as.numeric(natmort[natmort != ""])
+  
+  zaa<-natmort+faa
+  
+  catwt<-input[which(input == "[CATCH_WEIGHT]")+2]
+  catwt<-unlist(strsplit(catwt,split=" ")) #
+  catwt<-as.numeric(catwt[catwt != ""])
+  
+  ofl<-lapply(X=1:nrow(naa.matrix),FUN=function(x) sum((faa/zaa)*catwt*naa.matrix[x,]*(1-exp(-zaa))))
+  ofl<-unlist(ofl)
+  ofl.med<-median(ofl)
+  return(ofl.med)  
+} #end function
+
 
 
 #' analyzes age pro output
