@@ -75,7 +75,7 @@ fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year
 harvscen.num<-input[which(input == "[HARVEST]")+1]
 harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
 harvscen.num<-harvscen.num[harvscen.num != ""]
-harvscen.num<-c("1",rep("0",length(harvscen.num)-1))
+harvscen.num<-c("1",rep("0",length(harvscen.num)-1)) #catch in year 1 and then F thereafter
 harvscen<-input[which(input == "[HARVEST]")+2]
 harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
 harvscen<-harvscen[harvscen != ""]
@@ -173,7 +173,7 @@ rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=past
 ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
 ifile_noext <- paste(proj.fname,paste0(s,"_concatch"), sep="") #name of new agepro
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
-harvscen.num<-rep(1,length(catch))
+harvscen.num<-rep(1,length(catch)) #catch in all years
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 harvscen<-c(catch.median[1],rep(round(catch.median[2],0),(length(catch)-1)))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
@@ -197,28 +197,7 @@ for(s in 1:(length(SSBlevels)-1)){
 OFL<-round(OFL,0)
 OFL<-data.frame("--",OFL)
 OFL<-t(OFL)
-if(FALSE){
-##Do iterative OFL calculation
-#reset the harvscen and harvscen.num values (should be 1 and then 0's and replaced in loop below)
-harvscen.num<-input[which(input == "[HARVEST]")+1]
-harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
-harvscen.num<-harvscen.num[harvscen.num != ""]
-harvscen<-input[which(input == "[HARVEST]")+2]
-harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
-harvscen<-harvscen[harvscen != ""]
-for(s in 1:(length(SSBlevels)-1)){
- if(s==1){
-  harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
-  harvscen.ofl[s+1]<-Fmsy
-  OFL[s]<-"--"
- } else {
-  harvscen.ofl[s]<-catch.median[2]
-  harvscen.ofl[s+1]<-Fmsy
- }
- OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
- harvscen.num[s+1]<-1
-}
-}
+
 threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 

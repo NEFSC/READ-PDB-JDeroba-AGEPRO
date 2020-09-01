@@ -227,7 +227,7 @@ Bmsyfxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,nyr.avg=NULL){
   colnames(ssb.b) <- proj.yrs
   ssb.median.b <- apply(ssb.b,2,median)
   
-  ssb.brp <- format(round(mean(ssb.median.b[avg.yrs]),digits = 0),big.mark=",",trim=TRUE)
+  ssb.brp <- round(mean(ssb.median.b[avg.yrs]),digits = 0)
   
   return("SSBMSY"=ssb.brp)
 }
