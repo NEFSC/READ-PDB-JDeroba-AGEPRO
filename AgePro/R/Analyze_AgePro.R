@@ -18,6 +18,39 @@ BB_CR<-function(SSBstatus=NULL,SSBthresh=NULL,SSBthreshlo=NULL,FracFtarg=NULL,Fm
   }
 }
 
+#' applies baranov catch equation
+#' 
+#' used for OFL calcs
+#' @param xx1 is the xx1 file from an agepro run
+#' @param input is the agepro input file from ReadLines
+#' @param s is a looping quantity
+#' @param yr.names are years
+#' @param nages is number of ages
+#' @fmult is the fully selected F
+apply.baranov<-function(xx1=NULL,input=NULL,s=NULL,yr.names=NULL,nages=NULL,fmult=NULL){
+  naa.matrix<-(as.matrix(xx1[seq(s+1, nrow(xx1), length(yr.names)), ])/1000)
+  
+  sel<-input[which(input == "[FISHERY]")+2]
+  sel<-unlist(strsplit(sel,split=" ")) #
+  sel<-as.numeric(sel[sel != ""])
+  faa<-fmult*sel
+  
+  natmort<-input[which(input == "[NATMORT]")+2]
+  natmort<-unlist(strsplit(natmort,split=" ")) #
+  natmort<-as.numeric(natmort[natmort != ""])
+  
+  zaa<-natmort+faa
+  
+  catwt<-input[which(input == "[CATCH_WEIGHT]")+2]
+  catwt<-unlist(strsplit(catwt,split=" ")) #
+  catwt<-as.numeric(catwt[catwt != ""])
+  
+  ofl<-lapply(X=1:nrow(naa.matrix),FUN=function(x) sum((faa/zaa)*catwt*naa.matrix[x,]*(1-exp(-zaa))))
+  ofl<-unlist(ofl)
+  ofl.med<-median(ofl)
+  return(ofl.med)  
+} #end function
+
 
 
 #' analyzes age pro output
@@ -108,7 +141,7 @@ OFLfxn<-function(fyr=NULL,direct=NULL,s=NULL,proj.fname=NULL,input=NULL,Fmsy=NUL
 #' @keywords AgePro
 #' @export
 #' @examples
-#' OFLfxn()
+#' MSYageprofxn()
 MSYageprofxn<-function(proj.fname.b=NULL,short.proj.name=NULL,direct=NULL,decimals=NULL,fmsyold=NULL,nyr.avg=NULL,CIwant=NULL){
   input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
   fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
@@ -169,3 +202,33 @@ MSYageprofxn<-function(proj.fname.b=NULL,short.proj.name=NULL,direct=NULL,decima
   
   return(list("SSBMSY"=ssb.brp,"SSBMSYCI"=ssb.brp.CI,"MSY"=catch.brp,"MSYCI"=catch.brp.CI,"Recr"=rec.brp,"RecrCI"=rec.brp.CI,"fyr"=fyr,"catch4yr"=catch4yr,"catch4yrCI"=catch4yr.CI,"ssb4yr"=ssb4yr,"ssb4yrCI"=ssb4yr.CI,"fmult4yr"=fmult4yr,"fmult4yrCI"=fmult4yr.CI))
 }
+
+#' calculates Bmsy from longterm agepro run
+#' 
+#' Bmsy from agepro run
+#' @param proj.fname.b is the age pro input file without the .INP at the end
+#' @param decimals is the number decimals for output values
+#' @param nyr.avg is the number of years from the end of the longterm projection to be averaged to define ref points (e.g., Bmsy)
+#' @param direct is the directory location of proj.fname.b
+#' @keywords AgePro
+#' @export
+#' @examples
+#' Bmsyfxn()
+Bmsyfxn<-function(proj.fname.b=NULL,direct=NULL,decimals=NULL,nyr.avg=NULL){
+  input <- readLines(con=(paste(direct,paste(proj.fname.b,'INP',sep='.'),sep="\\"))) #read starting agepro file
+  fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
+  lyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],7,10)) #ID first year from Input file
+  proj.yrs <- seq(fyr,lyr)
+  avg.yrs <- tail(as.character(proj.yrs), nyr.avg)
+  four.yrs<-head(as.character(proj.yrs),4)
+  
+  #SSB
+  ssb.b <- read.table(paste(direct,paste(proj.fname.b,'xx3',sep='.'),sep="\\"))
+  colnames(ssb.b) <- proj.yrs
+  ssb.median.b <- apply(ssb.b,2,median)
+  
+  ssb.brp <- round(mean(ssb.median.b[avg.yrs]),digits = 0)
+  
+  return("SSBMSY"=ssb.brp)
+}
+

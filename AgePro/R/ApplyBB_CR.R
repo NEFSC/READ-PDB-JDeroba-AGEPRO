@@ -25,12 +25,14 @@
 AgeProRun<-function(direct="missing",proj.fname="missing",FracBmsyThreshHi=0.0,FracBmsyThreshLo=0.0,FracFtarg=1.0,SSBmsy="missing",Fmsy="missing",decimals=3,domsy=FALSE,
                     msy.name="missing",CIwantLow=0.05,CIwantHi=0.95,fmsyold=999,SSBmsyold=999,msyold=999,recrold=999,nyr.avg=10){
   
-  inputsa<-c(direct,proj.fname,FracBmsyThreshHi,FracBmsyThreshLo,FracFtarg,SSBmsy,Fmsy,decimals)
-  inputnames<-c("direct","proj.fname","FracBmsyThreshHi","FracBmsyThreshLo","FracFtarg","SSBmsy","Fmsy","decimals")
+  inputsa<-c(direct,proj.fname,FracBmsyThreshHi,FracBmsyThreshLo,FracFtarg,Fmsy,decimals)
+  inputnames<-c("direct","proj.fname","FracBmsyThreshHi","FracBmsyThreshLo","FracFtarg","Fmsy","decimals")
   for(c in 1:length(inputnames)){
     if(inputsa[c]=="missing"){stop(paste0(inputnames[c]," is missing"))}
   }
   if(domsy==TRUE & msy.name=="missing") {stop(paste0("msy.name"," is missing"))}
+  if(domsy==FALSE & SSBmsy=="missing") {stop(paste0("SSBmsy"," is missing"))}
+  
   
 direct<-direct
 setwd(direct)
@@ -41,7 +43,7 @@ file.copy(system.file("exe","agepro40.exe",package="AgePro"),direct,overwrite = 
 FracBmsyThreshHi=c(FracBmsyThreshHi) # For control rule; Threshold as fraction of Bmsy to switch from Fmsy*FracFtarg as target F to linear decline to zero
 FracBmsyThreshLo=c(FracBmsyThreshLo) #For control rule; Level of SSB as fraction of Bmsy where target F set to 0
 FracFtarg<-c(FracFtarg) #fraction of Fmsy that serves as max target F in control rule
-Bmsy<-SSBmsy
+if(domsy==FALSE) {Bmsy<-SSBmsy}
 Fmsy<-Fmsy
 decimals<-decimals
 
@@ -56,29 +58,50 @@ recrold<-recrold
 nyr.avg<-nyr.avg #average how many of the last years of long-term proj for ref point?
 
 ################################################################
+###Longterm BMSY agepro stuff
+if(domsy){
+  #Run agepro 
+  agepro.run<- shell(paste("  agepro40  ", paste0(msy.name,".INP"), sep=""), mustWork=F, intern=T )
+  Bmsy<-Bmsyfxn(proj.fname.b=msy.name,direct=direct,decimals=decimals,nyr.avg=nyr.avg)
+} #end if(domsy)
+###End longterm BMSY
+
 ###Short-term projections and control rule application
 #Read in an agepro input for manipulation later
 input <- readLines(con=(paste(direct,paste(proj.fname,'INP',sep='.'),sep="\\"))) #read starting agepro file
 fyr<-as.integer(substr(input[which(input == "[GENERAL]")+1],1,4)) #ID first year from Input file
 
-#Run agepro using intial input file; just a starting point.
-agepro.run<- shell(paste("  agepro40  ", paste0(proj.fname,".INP"), sep=""), mustWork=F, intern=T )
-
-#Need status in year one of projection to apply cr in loop below
-ssb <- read.table(paste(direct,paste(proj.fname,'xx3',sep='.'),sep="\\"))
-colnames(ssb) <- seq(fyr,fyr+ncol(ssb)-1)
-ssb.median <- apply(ssb,2,median)
-SSBlevels<-ssb.median/Bmsy #relative to Bmsy
-
 #extract the element of input file where F or catch values specified
 harvscen.num<-input[which(input == "[HARVEST]")+1]
 harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
 harvscen.num<-harvscen.num[harvscen.num != ""]
+harvscen.num<-c("1",rep("0",length(harvscen.num)-1)) #catch in year 1 and then F thereafter
 harvscen<-input[which(input == "[HARVEST]")+2]
 harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
 harvscen<-harvscen[harvscen != ""]
+harvscen[2:length(harvscen)]<-Fmsy  #Will be replaced in loops below
 #Create OFL holder
 OFL<-c()
+
+ifile <- paste(proj.fname,0,".INP", sep="") #name of new agepro
+ifile_noext<-paste(proj.fname,0, sep="") #need this with no extension for other calls
+write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
+write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
+write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
+if(length(input[which(input == "[OPTIONS]")]==1)) {optionsum=5} else {optionsum=3}
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+
+#Run agepro using intial input file; just a starting point.
+agepro.run<- shell(paste("  agepro40  ", ifile , sep=""), mustWork=F, intern=T )
+
+#Need status in year one of projection to apply cr in loop below
+ssb <- read.table(paste(direct,paste(ifile_noext,'xx3',sep='.'),sep="\\"))
+colnames(ssb) <- seq(fyr,fyr+ncol(ssb)-1)
+ssb.median <- apply(ssb,2,median)
+SSBlevels<-ssb.median/Bmsy #relative to Bmsy
+yr.names<-names(SSBlevels) #need for a function below.
 #########################################
 for(s in 1:(length(SSBlevels)-1)){
   if(s>1) {
@@ -92,33 +115,36 @@ for(s in 1:(length(SSBlevels)-1)){
   #apply CR
   Fmult<-BB_CR(SSBstatus=SSBlevels[s],SSBthresh=FracBmsyThreshHi,SSBthreshlo = FracBmsyThreshLo,FracFtarg=FracFtarg,Fmsy=Fmsy,CtrlRule=1) #call to HCR
   ifile <- paste(proj.fname,s,".INP", sep="") #name of new agepro
+  ifile_noext <- paste(proj.fname,s,sep="") #name of new agepro
   write(input[1:(which(input == "[HARVEST]")+1)], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
   harvscen[s+1]<-round(Fmult,decimals)
   harvscen<-paste(harvscen,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
   write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-  write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+  write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+  write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+  write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
   ###Run AgePro with proj.fname_s.INP
   agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
-  
-  ##Do iterative OFL calculation
-  ##get catches resulting from CR application
-  if(s>1){
-  catch.cr <- read.table(paste(direct,paste(paste0(proj.fname,s-1),'xx6',sep='.'),sep="\\"))
-  colnames(catch.cr) <- seq(fyr,fyr+ncol(catch.cr)-1)
-  catch.median.cr <- apply(catch.cr,2,median)
-  }
-  if(s==1){
-    harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
-    harvscen.ofl[s+1]<-Fmsy
-    OFL[s]<-"--"
-  } else {
-    harvscen.ofl[s]<-catch.median.cr[s]
-    harvscen.ofl[s+1]<-Fmsy
-  }
-  OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
-  harvscen.num[s+1]<-1
 }
 annual<-AnaAgePro(proj.fname.b=paste0(proj.fname,s),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
+
+######Do OFL - Get NAA from final run where HCR was applied above, just calculate OFL using Baranov
+######Solve for F to produce desired Canadian catch
+tempxx1.ofl<-read.table(paste(direct,paste0(ifile_noext,'.xx1'),sep="\\"))
+input.new.ofl<- readLines(con=(paste(direct,paste(ifile_noext,'INP',sep='.'),sep="\\"))) #read starting agepro file
+for(s in 1:(length(SSBlevels)-1)){
+  
+  if(s==1) {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-temp.concatch
+  } else {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-data.frame(OFL,temp.concatch)
+  }
+}
+OFL<-round(OFL,0)
+OFL<-data.frame("--",OFL)
+OFL<-t(OFL)
 #if F=Fmsy in all years>1 then catch should = OFL exactly, but won't due to differences
 #in specifying F versus catch in agepro.  So if F=Fmsy in all years then OFL=catch; otherwise,
 # use iterative solution from loops.
@@ -139,7 +165,9 @@ harvscen.num<-rep(1,length(catch)) #change numbers here so agepro uses catch ins
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 harvscen<-round(catch.median,4)
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
 annual["P(overfishing)"]<-annual.catch["P(overfishing)"]
@@ -148,49 +176,48 @@ annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
 #rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_annual.docx"),output_dir=direct,params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
-#Run each HCR with constant catch, i.e., catch in year one applies to all years
+#Run HCR with constant catch, i.e., catch in year one applies to all years
 ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
+ifile_noext <- paste(proj.fname,paste0(s,"_concatch"), sep="") #name of new agepro
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
-harvscen.num<-rep(1,length(catch))
+harvscen.num<-rep(1,length(catch)) #catch in all years
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 harvscen<-c(catch.median[1],rep(round(catch.median[2],0),(length(catch)-1)))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
 
-##Do iterative OFL calculation
-#reset the harvscen and harvscen.num values (should be 1 and then 0's and replaced in loop below)
-harvscen.num<-input[which(input == "[HARVEST]")+1]
-harvscen.num<-unlist(strsplit(harvscen.num,split=" ")) #data manip so I can change harvest scenario
-harvscen.num<-harvscen.num[harvscen.num != ""]
-harvscen<-input[which(input == "[HARVEST]")+2]
-harvscen<-unlist(strsplit(harvscen,split=" ")) #data manip so I can change harvest scenario
-harvscen<-harvscen[harvscen != ""]
+######Do OFL for constant catch
+tempxx1.ofl<-read.table(paste(direct,paste0(ifile_noext,'.xx1'),sep="\\"))
+input.new.ofl<- readLines(con=(paste(direct,paste(ifile_noext,'INP',sep='.'),sep="\\"))) #read starting agepro file
+
 for(s in 1:(length(SSBlevels)-1)){
- if(s==1){
-  harvscen.ofl<-unlist(strsplit(harvscen,split=" "))
-  harvscen.ofl[s+1]<-Fmsy
-  OFL[s]<-"--"
- } else {
-  harvscen.ofl[s]<-catch.median[2]
-  harvscen.ofl[s+1]<-Fmsy
- }
- OFL[s+1]<-OFLfxn(fyr=fyr,direct=direct,s=s,proj.fname=proj.fname,input=input,Fmsy=Fmsy,harvscen.num=harvscen.num,harvscen.ofl=harvscen.ofl)
- harvscen.num[s+1]<-1
+  if(s==1) {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-temp.concatch
+  } else {
+    temp.concatch<-apply.baranov(xx1=tempxx1.ofl,input=input.new.ofl,s=s,yr.names=yr.names,nages=nages,fmult=Fmsy)
+    OFL<-data.frame(OFL,temp.concatch)
+  }
 }
+OFL<-round(OFL,0)
+OFL<-data.frame("--",OFL)
+OFL<-t(OFL)
+
 threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 
 #rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
 rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_concatch.docx"),output_dir=direct,params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
 
+################################################################
 ###Longterm MSY agepro stuff
 if(domsy){
   #Run agepro 
-  agepro.run<- shell(paste("  agepro40  ", paste0(msy.name,".INP"), sep=""), mustWork=F, intern=T )
   MSYstuff<-MSYageprofxn(proj.fname.b=msy.name,short.proj.name=paste0(proj.fname,s),direct=direct,decimals=decimals,fmsyold=fmsyold,nyr.avg=nyr.avg,CIwant=CIwant)
-  
   ##write a txt file to send to Dan
   write(paste0("FMSY<-c(\"",fmsyold,'\",\"',Fmsy,'\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"))
   write(paste0("SSBMSY<-c(\"",Bmsyold,'\"',',\"',MSYstuff$SSBMSY," (",MSYstuff$SSBMSYCI[1]," - ",MSYstuff$SSBMSYCI[2],')\")'), file=paste(direct,paste0(msy.name,".txt"),sep="\\"),append=T)
