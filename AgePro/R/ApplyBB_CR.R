@@ -88,7 +88,10 @@ ifile_noext<-paste(proj.fname,0, sep="") #need this with no extension for other 
 write(input[1:(which(input == "[HARVEST]"))], file=paste(direct,ifile,sep="\\")) #first lines of agepro unchanged
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+if(length(input[which(input == "[OPTIONS]")]==1)) {optionsum=5} else {optionsum=3}
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 
 #Run agepro using intial input file; just a starting point.
 agepro.run<- shell(paste("  agepro40  ", ifile , sep=""), mustWork=F, intern=T )
@@ -117,7 +120,9 @@ for(s in 1:(length(SSBlevels)-1)){
   harvscen[s+1]<-round(Fmult,decimals)
   harvscen<-paste(harvscen,sep=" ",collapse=" ") #take multiple characters and make one string sep'd by a space; needed for agepro to read correctly
   write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-  write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+  write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+  write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+  write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
   ###Run AgePro with proj.fname_s.INP
   agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 }
@@ -160,14 +165,16 @@ harvscen.num<-rep(1,length(catch)) #change numbers here so agepro uses catch ins
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 harvscen<-round(catch.median,4)
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 annual.catch<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"b"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
 annual["P(overfishing)"]<-annual.catch["P(overfishing)"]
 annual["SSB/SSBmsy"]<-round(annual$SSB/Bmsy,decimals)
 
-rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
-#rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_annual.docx"),output_dir=direct,params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
+#rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_annual.docx"),params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
+rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_annual.docx"),output_dir=direct,params=list( hcr=annual,title=paste(proj.fname,"annual",sep=" ")))
 
 #Run HCR with constant catch, i.e., catch in year one applies to all years
 ifile <- paste(proj.fname,paste0(s,"_concatch"),".INP", sep="") #name of new agepro
@@ -177,7 +184,9 @@ harvscen.num<-rep(1,length(catch)) #catch in all years
 write(harvscen.num,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen.num))
 harvscen<-c(catch.median[1],rep(round(catch.median[2],0),(length(catch)-1)))
 write(harvscen,file=paste(direct,ifile,sep="\\"),append=T,ncolumns=length(harvscen))
-write(input[(which(input == "[HARVEST]")+3):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
+write("[OPTIONS]",file=paste(direct,ifile,sep="\\"),append=T)
+write(c(1,0,0),file=paste(direct,ifile,sep="\\"),append=T,ncolumns=3)
+write(input[(which(input == "[HARVEST]")+optionsum):length(input)],file=paste(direct,ifile,sep="\\"),append=T)
 agepro.run<- shell(paste("  agepro40  ", ifile, sep=""), mustWork=F, intern=T )
 threeblock<-AnaAgePro(proj.fname.b=paste0(proj.fname,s,"_concatch"),direct=direct,fmsy=Fmsy,ssbmsy=Bmsy,decimals=decimals,fyr=fyr)
 
@@ -201,8 +210,8 @@ OFL<-t(OFL)
 threeblock["OFL"]<-OFL
 threeblock["SSB/SSBmsy"]<-round(threeblock$SSB/Bmsy,decimals)
 
-rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
-#rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_concatch.docx"),output_dir=direct,params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
+#rmarkdown::render(paste(direct,"ProjectionTables.Rmd",sep="\\"),output_file=paste0(proj.fname,"_concatch.docx"),params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
+rmarkdown::render(system.file("rmd","ProjectionTables.Rmd",package="AgePro"),output_file=paste0(proj.fname,"_concatch.docx"),output_dir=direct,params=list( hcr=threeblock,title=paste(proj.fname,"Constant Catch",sep=" ")))
 
 ################################################################
 ###Longterm MSY agepro stuff
